@@ -5,12 +5,13 @@ import catboost as cb
 import lightgbm as lgb
 import matplotlib.pyplot as plt
 from datetime import datetime
-from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import VotingClassifier, StackingClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, FunctionTransformer
 from sklearn import metrics
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
 import warnings
 
 # Silence future warnings
@@ -131,9 +132,8 @@ lgbm_estimator = lgb.LGBMClassifier(random_state=7,
                                     min_child_samples=15,
                                     max_depth=11,
                                     learning_rate=0.019,
-                                    n_jobs=-1,
-                                    verbosity=0,
-                                    categorical_feature=cat_cols)
+                                    device='gpu',
+                                    verbosity=0)
 
 # Fit LightGBM
 print("Fit LightGBM\n")
@@ -142,9 +142,7 @@ lgbm_estimator.fit(X_train_prepped, y_train)
 # Instantiate CatBoost estimator
 catboost_estimator = cb.CatBoostClassifier(random_seed=7,
                                            depth=11,
-                                           iterations=600,
-                                           l2_leaf_reg=1,
-                                           learning_rate=0.03,
+                                           task_type='GPU',
                                            cat_features=cat_cols)
 
 # Fit Catboost
@@ -161,27 +159,38 @@ vc_model = VotingClassifier(estimators=[('cb', catboost_estimator),
 print("Fitting Voting Classifier\n")
 vc_model.fit(X_train_prepped, y_train)
 
+
+# Instantiate Stacking Classifier
+sc_model = StackingClassifier(estimators=[('cb', catboost_estimator),
+                                        ('lgbm', lgbm_estimator)],
+                              final_estimator=LogisticRegression(random_state=7))
+
+# Fit stacking classifier to the data
+print("Fitting Stacking Classifier\n")
+sc_model.fit(X_train_prepped, y_train)
+
 # Calculate test AUC and Accuracy
-model = [catboost_estimator, lgbm_estimator, vc_model]
+model = list(zip([catboost_estimator, lgbm_estimator, vc_model, sc_model],
+                 ['CatBoost', 'LightGBM', 'Voting Clf.', 'Stacking Clf.']))
 
-for m in model:
-    auc_score = metrics.roc_auc_score(y_test, m.predict_proba(X_test_prepped)[::, 1])
-    print("{model} AUC scores is: {auc}\n".format(model=m, auc=auc_score))
+for clf, label in model:
+    auc_score = metrics.roc_auc_score(y_test, clf.predict_proba(X_test_prepped)[::, 1])
+    print("{model} AUC scores is: {auc}\n".format(model=label, auc=auc_score))
 
-for m in model:
-    accuracy = metrics.accuracy_score(y_test, m.predict(X_test_prepped))
-    print("{model} Accuracy is: {acc}\n".format(model=m, acc=accuracy))
+for clf, label in model:
+    accuracy = metrics.accuracy_score(y_test, clf.predict(X_test_prepped))
+    print("{model} Accuracy is: {acc}\n".format(model=label, acc=accuracy))
 
 # Plot ROC-curve
 fig, ax = plt.subplots()
 plt.grid(visible=True)
 
-for m in model:
-    y_pred = m.predict_proba(X_test_prepped)[::, 1]
+for clf, label in model:
+    y_pred = clf.predict_proba(X_test_prepped)[::, 1]
     fpr, tpr, _ = metrics.roc_curve(y_test, y_pred, pos_label='yes')
     plt.plot(fpr, tpr, alpha=0.5)
 
-plt.legend(['CatBoost', 'LightGBM', 'Voting Clf.'])
+plt.legend(['CatBoost', 'LightGBM', 'Voting Clf.', 'Stacking Clf.'])
 ax.plot([0, 1], [0, 1], transform=ax.transAxes, linestyle='--', color='grey')
 plt.ylabel('True Positive Rate')
 plt.xlabel('False Positive Rate')
@@ -190,19 +199,19 @@ plt.savefig('no_ohe_roc_curve.png')
 plt.show()
 
 # Calculate F1-scores
-for m in model:
-    f1 = metrics.f1_score(y_test, m.predict(X_test_prepped), pos_label='yes')
-    print("{model} F1 score is: {acc}\n".format(model=m, acc=f1))
+for clf, label in model:
+    f1 = metrics.f1_score(y_test, clf.predict(X_test_prepped), pos_label='yes')
+    print("{model} F1 score is: {acc}\n".format(model=label, acc=f1))
 
 # Plot PR-curve
 plt.grid(visible=True)
 
-for m in model:
-    y_pred = m.predict_proba(X_test_prepped)[::, 1]
+for clf, label in model:
+    y_pred = clf.predict_proba(X_test_prepped)[::, 1]
     precision, recall, _ = metrics.precision_recall_curve(y_test, y_pred, pos_label='yes')
     plt.plot(precision, recall, alpha=0.5)
 
-plt.legend(['CatBoost', 'LightGBM', 'Voting Clf.'])
+plt.legend(['CatBoost', 'LightGBM', 'Voting Clf.', 'Stacking Clf.'])
 plt.ylabel('Recall')
 plt.xlabel('Precision')
 plt.title("PR Curve")
