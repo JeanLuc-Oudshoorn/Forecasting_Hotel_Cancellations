@@ -1,0 +1,8 @@
+algorithm,random_seed,hyper_parameters,roc_auc,accuracy
+Voting Clf, 7, [No weights], 0.96190, 0.90577
+Voting Clf, 7, [weights=[2 2 2 1], 0.96198, 0.90527
+Random Forest, 7, [None], 0.95733 ,0.89891
+Random Forest, 7, [max_depth=5 min_samples_leaf=30] , 0.96278, 0.90546
+Random Forest, 7, [max_depth=8  min_samples_leaf=40] , 0.96270, 0.90490
+KNN, -, [n_neighbors=21 weights=uniform], 0.95648, 0.90302
+Logistic Regression, 7, [None], 0.96108, 0.90534
