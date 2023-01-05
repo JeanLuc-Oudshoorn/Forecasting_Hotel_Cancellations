@@ -1,8 +1,7 @@
-algorithm,random_seed,hyper_parameters,roc_auc,accuracy
-Voting Clf, 7, [No weights], 0.96190, 0.90577
-Voting Clf, 7, [weights=[2 2 2 1], 0.96198, 0.90527
-Random Forest, 7, [None], 0.95733 ,0.89891
-Random Forest, 7, [max_depth=5 min_samples_leaf=30] , 0.96278, 0.90546
-Random Forest, 7, [max_depth=8  min_samples_leaf=40] , 0.96270, 0.90490
-KNN, -, [n_neighbors=21 weights=uniform], 0.95648, 0.90302
-Logistic Regression, 7, [None], 0.96108, 0.90534
+Algorithm,ROC AUC Score,Accuracy,Hyperparameters
+LGBMClassifier,0.960121,0.901404,"{'boosting_type': 'gbdt', 'class_weight': None, 'colsample_bytree': 0.88, 'importance_type': 'split', 'learning_rate': 0.019, 'max_depth': 11, 'min_child_samples': 15, 'min_child_weight': 0.001, 'min_split_gain': 0.0, 'n_estimators': 3600, 'n_jobs': -1, 'num_leaves': 31, 'objective': None, 'random_state': 7, 'reg_alpha': 0.0, 'reg_lambda': 0.0, 'silent': 'warn', 'subsample': 1.0, 'subsample_for_bin': 200000, 'subsample_freq': 0, 'verbosity': -10}"
+catboost,0.959479,0.903151,"{'iterations': 600, 'learning_rate': 0.03, 'depth': 11, 'l2_leaf_reg': 1, 'random_seed': 7, 'verbose': False}"
+RandomForestClassifier,0.958133,0.903838,"{'bootstrap': True, 'ccp_alpha': 0.0, 'class_weight': None, 'criterion': 'gini', 'max_depth': None, 'max_features': 10, 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'n_estimators': 500, 'n_jobs': -1, 'oob_score': False, 'random_state': 7, 'verbose': False, 'warm_start': False}"
+XGBClassifier,0.957616,0.897473,"{'objective': 'binary:logistic', 'use_label_encoder': None, 'base_score': 0.5, 'booster': 'gbtree', 'callbacks': None, 'colsample_bylevel': 1, 'colsample_bynode': 1, 'colsample_bytree': 0.88, 'early_stopping_rounds': None, 'enable_categorical': False, 'eval_metric': None, 'feature_types': None, 'gamma': 0, 'gpu_id': -1, 'grow_policy': 'depthwise', 'importance_type': None, 'interaction_constraints': '', 'learning_rate': 0.02, 'max_bin': 256, 'max_cat_threshold': 64, 'max_cat_to_onehot': 4, 'max_delta_step': 0, 'max_depth': 11, 'max_leaves': 0, 'min_child_weight': 10, 'missing': nan, 'monotone_constraints': '()', 'n_estimators': 700, 'n_jobs': -1, 'num_parallel_tree': 1, 'predictor': 'auto', 'random_state': 7, 'reg_alpha': 0, 'reg_lambda': 1, 'sampling_method': 'uniform', 'scale_pos_weight': 1, 'subsample': 1, 'tree_method': 'exact', 'validate_parameters': 1, 'verbosity': 0, 'seed': 7, 'nthread': -1}"
+VotingClassifier,0.961852,0.906022,None
+StackingCVClassifier with RandomForestClassifier,0.96266,0.905273,"{'meta_classifier__max_depth': 5, 'meta_classifier__min_samples_leaf': 30}"

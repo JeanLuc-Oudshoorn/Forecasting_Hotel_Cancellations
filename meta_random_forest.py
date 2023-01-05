@@ -6,6 +6,7 @@ import lightgbm as lgb
 import xgboost as xgb
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
 from datetime import datetime
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import VotingClassifier, RandomForestClassifier
@@ -14,9 +15,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, FunctionTransformer
 from sklearn import metrics
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
 from mlxtend.classifier import StackingCVClassifier
 import warnings
+import csv
 
 # Silence future warnings
 warnings.simplefilter(action='ignore')
@@ -166,7 +167,7 @@ xgb_estimator = xgb.XGBClassifier(verbosity=0,
                                   nthread=-1,
                                   learning_rate=0.02,
                                   max_depth=11,
-                                  n_estimators=400,
+                                  n_estimators=700,
                                   min_child_weight=10,
                                   colsample_bytree=0.88)
 
@@ -181,16 +182,19 @@ vc_estimator = VotingClassifier(estimators=[('lgbm', lgbm_estimator),
 
 
 # Instantiate the StackingCV classifier
+meta_classifier = RandomForestClassifier(random_state=7)
+
 sclf_base = StackingCVClassifier(classifiers=[lgbm_estimator, rf_estimator, catboost_estimator, xgb_estimator],
-                                      cv=4,
-                                      shuffle=False,
-                                      use_probas=True,
-                                      n_jobs=-1,
-                                      meta_classifier=RandomForestClassifier(random_state=7))
+                                 cv=4,
+                                 shuffle=False,
+                                 use_probas=True,
+                                 n_jobs=-1,
+                                 random_state=7,
+                                 meta_classifier=meta_classifier)
 
 # Define parameter grid
-params = {"meta_classifier__max_depth": [6, 8],
-          "meta_classifier__min_samples_leaf": [20, 40]}
+params = {"meta_classifier__max_depth": [4, 5],
+          "meta_classifier__min_samples_leaf": [30, 40]}
 
 
 # Initialize GridSearchCV
@@ -305,7 +309,7 @@ for key, counter in zip(classifiers, range(5)):
 plt.tight_layout()
 
 # Save Figure
-plt.savefig("rf_meta_prob_distr.png", dpi=1080)
+plt.savefig("rf_meta_prob_distr.png", dpi=600)
 
 ###############################################################################
 #                         6. Evaluate Classifiers                             #
@@ -337,5 +341,49 @@ ax.plot([0, 1], [0, 1], transform=ax.transAxes, linestyle='--', color='grey')
 plt.ylabel('True Positive Rate')
 plt.xlabel('False Positive Rate')
 plt.title("ROC curve")
-plt.savefig('rf_meta_roc_curve.png')
+plt.savefig('rf_meta_roc_curve.png', dpi=600)
 plt.show()
+
+###############################################################################
+#                            8. Write Results                                 #
+###############################################################################
+
+header = ['Algorithm', 'ROC AUC Score', 'Accuracy', 'Hyperparameters']
+
+# Open file in write mode
+with open('results.csv', 'w') as f:
+
+    # Create a writer
+    writer = csv.writer(f)
+
+    # Write header to file
+    writer.writerow(header)
+
+    for key in classifiers:
+
+        estimator_string = re.search('(\w+)\s?', str(classifiers[key])).group(1)
+
+        upd_string = estimator_string
+
+        if key == 'Stack':
+            estimator_string = re.search('estimator=(\w+)\s?', str(classifiers[key])).group(1)
+            meta_string = re.search('meta_classifier=(\w+)\s?', str(classifiers[key])).group(1)
+            upd_string = estimator_string + ' with ' + meta_string
+
+        roc_auc_score = np.round(metrics.roc_auc_score(y_test, classifiers[key].predict_proba(X_test_prepped)[::, 1]),
+                                 6)
+
+        accuracy_score = np.round(metrics.accuracy_score(y_test, classifiers[key].predict(X_test_prepped)), 6)
+
+        if key == 'Voting':
+            params = "None"
+        elif key == 'Stack':
+            params = classifiers[key].best_params_
+        else:
+            params = classifiers[key].get_params()
+
+        tmp_row = [upd_string, roc_auc_score, accuracy_score, params]
+
+        writer.writerow(tmp_row)
+
+print("Results Written\n")

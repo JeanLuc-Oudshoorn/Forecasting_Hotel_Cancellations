@@ -307,7 +307,7 @@ plt.grid(visible=True)
 
 for key in classifiers:
     y_pred = classifiers[key].predict_proba(X_test_prepped)[::, 1]
-    fpr, tpr, _ = metrics.roc_curve(y_test, y_pred, pos_label='yes')
+    fpr, tpr, _ = metrics.roc_curve(y_test, y_pred, pos_label=1)
     plt.plot(fpr, tpr, alpha=0.5)
 
 plt.legend(['LightGBM', 'CatBoost', 'Random Forest', 'MLP', 'Voting Clf.', 'Stacking Clf.'])
